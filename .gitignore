@@ -5,7 +5,7 @@
 *.zip
 *.csv
 data/
-scripts_auxiliadores/
+config.py
 
 # Ignorar cache do Python
 __pycache__/
