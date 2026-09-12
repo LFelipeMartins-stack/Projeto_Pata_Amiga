@@ -1,5 +1,5 @@
 -- ARQUIVO 04: CARGA DA TABELA FATO (fato_pedido) 
--- =====================================================================================
+
 TRUNCATE TABLE fato_pedido RESTART IDENTITY CASCADE;
 
 INSERT INTO fato_pedido (
