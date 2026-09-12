@@ -1,4 +1,4 @@
--- ARQUIVO 04: CARGA DA TABELA FATO 
+-- ARQUIVO 04: CARGA DA TABELA FATO (fato_pedido) 
 -- =====================================================================================
 TRUNCATE TABLE fato_pedido RESTART IDENTITY CASCADE;
 
@@ -34,7 +34,7 @@ SELECT
         -1
     ) AS sk_tempo_entrega,
     
-    -- 3. FK Loja (Lookup por Código ou Nome Padronizado; -1 se não encontrada)
+    -- 3. FK Loja (Lookup por Código com TRIM ou Tratamento Padronizado do Nome)
     COALESCE(l.sk_loja, -1) AS sk_loja,
     
     -- 4. FK Categoria (Lookup exato pela grafia crua da origem)
@@ -47,7 +47,7 @@ SELECT
         ELSE 'Nao Informado'
     END AS houve_desconto,
     
-    -- 6. Padronização do Canal (WHATS antes de APP)
+    -- 6. Padronização do Canal (A ORDEM IMPORTA: WHATS antes de APP)
     CASE 
         WHEN UPPER(TRANSLATE(p."CanalPedido", 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇáàâãéèêíìîóòôõúùûç', 'AAAAEEEIIIOOOOUUUCaaaaeeeiiioooouuuc')) LIKE '%WHATS%' THEN 'WhatsApp'
         WHEN UPPER(TRANSLATE(p."CanalPedido", 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇáàâãéèêíìîóòôõúùûç', 'AAAAEEEIIIOOOOUUUCaaaaeeeiiioooouuuc')) LIKE '%APP%' THEN 'App'
@@ -75,7 +75,7 @@ SELECT
             CAST(REPLACE(REPLACE(p."ValorLiquidoPedido(R$)", 'R$', ''), ' ', '') AS DECIMAL(15,2))
     END AS vl_liquido,
     
-    -- 10. Lags do Processo (em Dias - Retorna NULL quando o marco final não aconteceu ou é '-')
+    -- 10. Lags do Processo (em Dias - NULL quando marco final não aconteceu ou é '-')
     CASE 
         WHEN TRIM(p."Dt Separacao Estoque") IN ('', '-') OR p."Dt Separacao Estoque" IS NULL THEN NULL
         ELSE p."Dt Separacao Estoque"::date - TO_TIMESTAMP(p."DtHoraIntegracaoERP", 'MM/DD/YYYY HH12:MI AM')::date 
@@ -110,15 +110,19 @@ FROM stg_pedido p
 LEFT JOIN dim_categoria c 
     ON p."CategoriaProduto" = c.categoria_origem
 
--- JOIN Loja (Código ou Nome Padronizado)
+-- JOIN Loja (Primeiro UPPER + TRANSLATE, depois REPLACE do /SC e dos apelidos)
 LEFT JOIN dim_loja l 
-    ON p."Cod Loja" = l.cod_loja 
-    OR UPPER(TRANSLATE(
+    ON TRIM(p."Cod Loja") = l.cod_loja 
+    OR REPLACE(
         REPLACE(
             REPLACE(
-                REPLACE(
-                    REPLACE(p."Loja-Nome", '/SC', ''),
-                'PATA AMIGA BLUMENAL CENTRO', 'PATA AMIGA BLUMENAU CENTRO'),
-            'PATA AMIGA FLORIPA NORTE', 'PATA AMIGA FLORIANOPOLIS NORTE'),
-        'PATA AMIGA JGUA DO SUL', 'PATA AMIGA JARAGUA DO SUL'),
-    'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇáàâãéèêíìîóòôõúùûç', 'AAAAEEEIIIOOOOUUUCaaaaeeeiiioooouuuc')) = l.chave_loja;
+                TRIM(
+                    REPLACE(
+                        REPLACE(
+                            UPPER(TRANSLATE(p."Loja-Nome", 'áàâãéèêíìîóòôõúùûçÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUCaaaaeeeiiioooouuuc')),
+                        '/SC', ''),
+                    '  ', ' ')
+                ),
+            'PATA AMIGA BLUMENAL CENTRO', 'PATA AMIGA BLUMENAU CENTRO'),
+        'PATA AMIGA FLORIPA NORTE', 'PATA AMIGA FLORIANOPOLIS NORTE'),
+    'PATA AMIGA JGUA DO SUL', 'PATA AMIGA JARAGUA DO SUL') = l.chave_loja;
