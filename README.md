@@ -7,7 +7,37 @@ O objetivo deste projeto é integrar os dados legados de três sistemas distinto
 
 ---
 
-## 2. Diagrama do Modelo Dimensional (Star Schema)
+## 2. Requisitos de Sistema e Pré-requisitos
+
+Para reproduzir o ambiente de Data Warehouse e executar a geração de gráficos, certifique-se de possuir a seguinte infraestrutura configurada:
+
+### 2.1. Banco de Dados
+* **PostgreSQL 16** (ou superior)
+* **pgAdmin 4** (ou cliente SQL de sua preferência)
+
+### 2.2. Ambiente Python e Dependências
+* **Python 3.10+** (testado na versão 3.13)
+* Instalação das bibliotecas necessárias via terminal:
+
+`pip install pandas sqlalchemy psycopg2-binary matplotlib seaborn`
+
+### 2.3. Configuração de Credenciais (`config.py`)
+Crie um arquivo local chamado `config.py` na raiz do projeto contendo a estrutura de credenciais:
+
+python
+import os
+
+POSTGRES_CONFIG = {
+    "host": os.environ.get("POSTGRES_HOST", "localhost"),
+    "port": int(os.environ.get("POSTGRES_PORT", "5432")),
+    "user": os.environ.get("POSTGRES_USER", "postgres"),
+    "password": os.environ.get("POSTGRES_PASSWORD", "SUA_SENHA_AQUI"),
+    "dbname": os.environ.get("POSTGRES_DATABASE", "dw_pata_amiga")
+}
+
+---
+
+## 3. Diagrama do Modelo Dimensional (Star Schema)
 
 ![Star Schema](./diagrama-modelo.png)
 
@@ -17,7 +47,7 @@ O objetivo deste projeto é integrar os dados legados de três sistemas distinto
 
 ---
 
-## 3. Ordem de Execução dos Scripts
+## 4. Ordem de Execução dos Scripts
 
 Para reproduzir o banco de dados do zero, execute os scripts SQL na seguinte ordem:
 
@@ -29,7 +59,7 @@ Para reproduzir o banco de dados do zero, execute os scripts SQL na seguinte ord
 
 ---
 
-## 4. Diagnóstico da Origem (Staging)
+## 5. Diagnóstico da Origem (Staging)
 
 A análise da área de staging revelou inconsistências críticas nos dados brutos:
 
@@ -45,7 +75,7 @@ A análise da área de staging revelou inconsistências críticas nos dados brut
 
 ---
 
-## 5. Decisões de Tratamento (ETL)
+## 6. Decisões de Tratamento (ETL)
 
 * **Máscaras de Data:** `DtHoraPedido` foi convertida com a máscara americana `TO_TIMESTAMP(..., 'MM/DD/YYYY HH12:MI AM')` e formatada para o inteiro `YYYYMMDD` da `dim_tempo`. Os marcos de entrega ISO foram convertidos com `::date`.
 * **Regra dos Números e Nulos:** Valores como `""` e `"-"` em métricas numéricas ou datas foram gravados estritamente como `NULL` (nunca zero), preservando a precisão das médias de tempo (`AVG`). Símbolos `R$` e pontos de milhar foram removidos antes da conversão para `DECIMAL(15,2)`.
@@ -55,7 +85,7 @@ A análise da área de staging revelou inconsistências críticas nos dados brut
 
 ---
 
-## 6. Respostas às Perguntas de Negócio
+## 7. Respostas às Perguntas de Negócio
 
 ### P1: Onde está o gargalo da entrega?
 
@@ -136,8 +166,9 @@ Aplicando o rateio proporcional populacional via tabela ponte, a soma bateu **R$
 
 ![Métricas de Dados Ausentes](./grafico_p5c_dados_ausentes.png)
 
+---
 
-## 7. Recomendação Final e Limitações
+## 8. Recomendação Final e Limitações
 
 ### Recomendação de Expansão
 A recomendação estratégica é priorizar a praça da **Foz do Itajaí**. A praça conta com **74.000 domicílios com pet** (4ª maior demanda potencial do estado), mas atualmente gera apenas **R$ 46.749,72** em faturamento rateado. Há uma clara sub-atendimento da demanda local em comparação com regiões equivalentes.
